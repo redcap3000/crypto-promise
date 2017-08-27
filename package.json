@@ -1,0 +1,23 @@
+{
+  "name": "crypto-promise",
+  "version": "1.0.0",
+  "description": "Simple cryptocurrency wallet and order management made with promises.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "mining"
+  ],
+  "author": "Ronaldo Barbachano",
+  "license": "ISC",
+  "dependencies": {
+    "@you21979/bittrex.com": "0.0.4",
+    "body-parser": "^1.17.2",
+    "express": "^4.15.4",
+    "hitbtc-api": "^3.0.2",
+    "nanopool_api": "github:redcap3000/nanopool_api",
+    "promise": "^8.0.1"
+  }
+}
