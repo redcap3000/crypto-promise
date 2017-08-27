@@ -1,8 +1,9 @@
-An implementation of promises to monitor cryptocurrency mining and 
-    exchange operations. Currently supports hitbtc, bittrex, and nanopool with a 
-    hacked version of nanopool_api npm module to support easy checking of 
-    multiple nanopool accounts for all supported
-    nanopool currencies. Outputs response (JSON) using express @ /user endpoint.
+
+#crypto-promise
+
+An implementation of promises to monitor cryptocurrency mining and exchange operations. Currently supports hitbtc, bittrex, and nanopool with a hacked version of nanopool_api npm module to support easy checking of multiple nanopool accounts for all supported nanopool currencies. 
+
+**Ronaldo Barbachano 2017**
 
 ##Nanopool address checker
 You can check many nanopool addresses by adding them to the accounts.json.
