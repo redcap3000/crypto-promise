@@ -101,7 +101,6 @@ app.get('/', function(request, response) {
 
 app.get('/usdQuotes', function(req,res) {
     // designed to be simple.... 
-    console.log('here')
     
     makeHitBtcClient(process.env.HITBTC_API_KEY, process.env.HITBTC_API_SECRET)
 
