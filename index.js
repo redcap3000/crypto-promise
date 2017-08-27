@@ -71,9 +71,19 @@ const express = require('express')
 const app = express()
 var bodyParser = require("body-parser")
 
-app.use(bodyParser.json({ type: 'application/*+json' }))
+
+app.use(express.static(__dirname + '/public'));
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+
+app.get('/', function(request, response) {
+  response.render('pages/index');
+});
 
 app.get('/bittrex',function(req,res){
+    app.use(bodyParser.json({ type: 'application/*+json' }))
+
     let balances = []
     api.getBalances().then((row,err)=>{
     if(typeof err == 'undefined'){
@@ -151,6 +161,7 @@ app.get('/bittrex',function(req,res){
 })
 
 app.get('/hitbtc', function(req, res) {
+    app.use(bodyParser.json({ type: 'application/*+json' }))
 
     makeHitBtcClient = function(key, secret) {
         try {
@@ -272,6 +283,8 @@ app.get('/hitbtc', function(req, res) {
 
 })
 app.get('/nanopool', function(req, res) {
+    app.use(bodyParser.json({ type: 'application/*+json' }))
+
     let response = [],
         supportedCurrencies = [],
         r = [],
