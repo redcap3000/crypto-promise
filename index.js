@@ -16,6 +16,24 @@ var Promise = require('promise');
 if (typeof process.env.HITBTC_API_KEY != 'undefined' && typeof process.env.HITBTC_API_SECRET != 'undefined') {
     console.log('hitbtc key found')
     HitBTC = require('hitbtc-api')
+    makeHitBtcClient = function(key, secret) {
+        try {
+            restClient = new HitBTC.default({ key, secret, isDemo: false })
+        } catch (error) {
+            console.log("Could not make hitbtc client.")
+            console.log(error)
+            return false
+        }
+        return true
+    }
+
+    getHitbtcBalance = function(key, secret) {
+        makeHitBtcClient(key, secret)
+        let { getMyBalance } = restClient
+        // return a promise
+        return getMyBalance()
+    }
+
 }
 
 if (typeof process.env.BITTREX_API_KEY != 'undefined' && typeof process.env.BITTREX_API_SECRET != 'undefined') {
@@ -79,6 +97,85 @@ app.set('view engine', 'ejs');
 
 app.get('/', function(request, response) {
   response.render('pages/index');
+});
+
+app.get('/usdQuotes', function(req,res) {
+    // designed to be simple.... 
+    console.log('here')
+    
+    makeHitBtcClient(process.env.HITBTC_API_KEY, process.env.HITBTC_API_SECRET)
+
+    let { getTicker } = restClient
+    promises = []
+    // hitbtc quote
+    let convertBittrex = function(string){
+        let temp = string.split('-')
+        return temp[1]
+
+        if(temp[0] == 'USDT'){
+            return temp[1] + 'USD'
+        }else{
+            return temp[1] + temp[0]
+
+        }
+    }
+    let quotes = [
+        ['BTCUSD','hitbtc'],
+        ['ETHUSD','hitbtc'],
+        ['BCCUSD','hitbtc'],
+        //['LTCUSD','hitbtc'],
+        //['XMRUSD','hitbtc'],
+        //['ZECUSD','hitbtc'],
+        ['USDT-BTC','bittrex'],
+        ['USDT-ETH','bittrex'],
+        ['USDT-BCC','bittrex'],
+        ['USDT-XRP','bittrex']
+        //['USDT-LTC','bittrex'],
+        //['USDT-XMR','bittrex'],
+        //['USDT-ZEC','bittrex']
+    ]
+
+    quotes.filter(function(q){
+        
+        let andThen = function(r){
+            let newObj = []
+            // symbol change this if you'd like to do some clientside maths... 
+            if(typeof r.Last != 'undefined'){
+                newObj.push(convertBittrex(q[0]))
+            }else{
+                newObj.push(q[0].split('USD')[0]);
+            }
+            // exchange
+            newObj.push(q[1]);
+            // quote (swapping from slightly differing api responses)
+            if(typeof r.last != 'undefined'){
+                newObj.push(parseFloat(r.last));
+            }else if(typeof r.Last != 'undefined'){
+                newObj.push(parseFloat(r.Last));
+            }
+            return newObj
+        }
+        
+        if(q[1] == 'hitbtc'){
+            promises.push(getTicker(q[0]).then(andThen))
+        }else if(q[1] == 'bittrex'){
+            //console.log("Pushing bittrex")
+            promises.push( bittrex.PublicApi.getTicker(q[0]).then(andThen))
+        }
+    })
+   
+    let results = []
+    console.log(promises.length)
+    var result = Promise.all(promises).then((r)=>{
+//        console.log(r)
+        res.send(r)
+        //results.push(r)
+       
+    }
+    ).catch((e,r)=>{
+        console.log(e)
+    })
+
 });
 
 app.get('/bittrex',function(req,res){
@@ -163,23 +260,6 @@ app.get('/bittrex',function(req,res){
 app.get('/hitbtc', function(req, res) {
     app.use(bodyParser.json({ type: 'application/*+json' }))
 
-    makeHitBtcClient = function(key, secret) {
-        try {
-            restClient = new HitBTC.default({ key, secret, isDemo: false })
-        } catch (error) {
-            console.log("Could not make hitbtc client.")
-            console.log(error)
-            return false
-        }
-        return true
-    }
-
-    getHitbtcBalance = function(key, secret) {
-        makeHitBtcClient(key, secret)
-        let { getMyBalance } = restClient
-        // return a promise
-        return getMyBalance()
-    }
 
     hitbtcCurrencies = []
 

@@ -117,8 +117,10 @@
 				+ "</td></tr>"
 		}
 		let rowQuote = function(ask,bid,last){
+			if(typeof ask == 'undefined' || typeof bid == 'undefined'){
+				return ""
+			}
 			let spread = percentDiff(parseFloat(ask),parseFloat(bid))
-			console.log(spread)
 			return "<ol class='breadcrumb text-center'><li>"+spread+ "</li><li class='quoteAsk'>" + ask + '</li><li class="quoteBid">' + bid+ '</li><li class="lastQuote">'+last+'</li></ol>'
 		}
 		let progressBar = function(valueNow,valueMin,valueMax){
@@ -134,8 +136,34 @@
 			  '</div>'+
 			'</div>'
 		}
+		let updateElementById= function(target,newValue){
+			return document.getElementById(target).innerHTML = newValue
+		}
+
+		let getUsdQuotes=function(){
+			$.getJSON('/usdQuotes',function(data){
+				data.filter(function(q){
+					let symbol = q[0]
+					let exchange = q[1]
+					let value = q[2]
+					matchingElement = document.getElementById(symbol + '_'+exchange)
+					if(typeof matchingElement != 'undefined' && matchingElement != null){
+						let newValue = parseFloat(matchingElement.innerHTML)
+						if(newValue){
+							updateElementById(symbol + '_'+exchange + '_value', ' $ '+ (newValue * value).toFixed(2))
+
+						}else{
+
+						}
+
+					}
+
+				})
+			})
+		}
 		$.getJSON( endpoint, function( data ) {
 		  var items = [];
+		  getUsdQuotes()
 		  data.filter( function( val ) {
 		  	let symbol = val[0]
 		  	let totalWalletValue = val[1]
@@ -147,9 +175,10 @@
 		    items.push( 
 		    	"<div class='panel panel-default'><div class='panel-heading'><h3>" +
 		    	 symbol + 
-		    	 "<span class='pull-right'>"+
+		    	 "<span id='"+symbol+'_'+ endpoint.split('/')[1] +"' class='pull-right'>"+
 		    	 totalWalletValue +
-		    	 "</span></h3></div><div class='panel-body'>"
+		    	 "</span></h3></div><div class='panel-body'>"+
+		    	  "<h4 class='calculatedVal text-center' id='"+symbol+'_'+ endpoint.split('/')[1] +"_value'></h4>"
 		    	 )
 		    //items.push( "<li><ul><li>" + totalWalletValue + "</li><li>"+ valueOnOrders+"</li></ul></li>" );
 		    //items.push( "<li>" + totalWalletValue + ' / '+  valueOnOrders+"</li>" );
@@ -160,7 +189,9 @@
 			    orders.filter(function(o){
 			    	if(typeof o.Exchange != 'undefined'){
 			    		// bittrex
-			    		console.log(o.Limit)
+			    		/*
+							Values are being doubled!!!!!
+			    		*/
 						let orderRate = 0
 			    		
 						if(typeof o.Limit != 'undefined'){
@@ -190,14 +221,11 @@
 			    		let orderRate = parseFloat(o.orderPrice)
 			    		let orderType = o.type + ' ' + o.side
 			    		let quantity = o.orderQuantity
-			    		//console.log(quantity)
 			    		let amountSold = quantity - o.quantityLeaves
 			    		let date = timeSince(new Date(o.lastTimestamp))
 			    		let endPair = "BTC"
-			    		//console.log(date)
 			    		basePairs.filter(function(p){
 			    			if(symbol.endsWith(p)){
-			    				console.log('Symbol ' + symbol + ' is ' + p)
 			    				symbol = symbol.split(p)[0]
 				   				endPair = p
 			    			}
@@ -235,7 +263,6 @@
 		    items.push( "</div></div>" )
 
 		  });
-		  console.log(items)
 		  document.getElementById(endpoint.split('/')[1]).innerHTML =  items.join(' ') 
 
 		})
