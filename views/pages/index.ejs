@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <% include ../partials/header.ejs %>
+  <style>
+  body{
+    font-family: 'Work Sans', sans-serif;
+  }
+  ul{
+  	list-style-type: none;
+  }
+  th,td{
+  	text-align:right;
+  	width:25%;
+  }
+  .exchangeItem{
+  	border: solid red 2px;
+  
+  }
+  .lastQuote{
+  	color:black;
+  	font-size:18px!IMPORTANT;
+  	border-bottom:solid gray 1px;
+  	margin-left:0;
+  	margin-right:0;
+  	line-height:1.5em;
+  	padding:0;
+  	text-align:right;
+  	letter-spacing: 2px;
+  }
+  .quoteAsk,.sellColor{
+  	color:red;
+  }
+  .quoteBid,.buyColor{
+  	color:green;
+  }
+  </style>
+<link href="https://fonts.googleapis.com/css?family=Work+Sans" rel="stylesheet">
+</head>
+
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 col-md-6" id="bittrex">
+			</div>
+			<div class="col-sm-12 col-md-6" id="hitbtc">
+			</div>
+			<div class="col-sm-12 col-md-6" id="nanopool">
+			</div>
+		</div>
+	</div>
+	<script>
+	// https://stackoverflow.com/questions/3177836/how-to-format-time-since-xxx-e-g-4-minutes-ago-similar-to-stack-exchange-site
+	function timeSince(date) {
+
+	    var seconds = Math.floor((new Date() - date) / 1000);
+
+	    var interval = Math.floor(seconds / 31536000);
+
+	    if (interval > 1) {
+	        return interval + " years";
+	    }
+	    interval = Math.floor(seconds / 2592000);
+	    if (interval > 1) {
+	        return interval + " months";
+	    }
+	    interval = Math.floor(seconds / 86400);
+	    if (interval > 1) {
+	        return interval + " days";
+	    }
+	    interval = Math.floor(seconds / 3600);
+	    if (interval > 1) {
+	        return interval + " hours";
+	    }
+	    interval = Math.floor(seconds / 60);
+	    if (interval > 1) {
+	        return interval + " minutes";
+	    }
+	    return Math.floor(seconds) + " seconds";
+	}
+	 function percentDiff(v1,v2){
+	    if(isNaN(v1) || isNaN(v2)){
+	      return ''
+	    }
+	    var r = v1 - v2
+	    r = r / ((v1 + v2) / 2)
+	    return (!isNaN(r) ? (r * 100).toFixed(3) : '')
+	  }
+	   function percentChange(v1,v2){
+
+	    if(isNaN(v1) || isNaN(v2)){
+	      return ''
+	    }
+	    let num = v1 - v2
+	    return (num / v2) * 100
+	  }
+	   function btcToSatoshi(x){
+	    return (x / 0.00000001).toFixed(0)
+	  }
+	   function btcToMbtc(x){
+	    // guessing here....
+	    // maybe tofixed 8?
+	    return (x / 0.00001).toFixed(0)
+	  }
+	['/bittrex','/hitbtc'].filter(function(endpoint){
+		let rowOrder = function(rate,orderType,endPair,date,quantity,amountSold){
+			let orderColorClass = (orderType == 'limit sell' || orderType == 'sell' ? 'sellColor' : 'buyColor')
+
+			return "<tr class='"+orderColorClass+"'><td>"+
+				rate
+			    + "</td><td>"
+				+ endPair
+				+ "</td><td>" +
+				(typeof date != 'undefined' ? date : '')
+				+ "</td><td>" +
+				(typeof quantity != 'undefined' ? quantity : '') + ' / ' + (typeof amountSold != 'undefined' ? amountSold : '') 
+				+ "</td></tr>"
+		}
+		let rowQuote = function(ask,bid,last){
+			let spread = percentDiff(parseFloat(ask),parseFloat(bid))
+			console.log(spread)
+			return "<ol class='breadcrumb text-center'><li>"+spread+ "</li><li class='quoteAsk'>" + ask + '</li><li class="quoteBid">' + bid+ '</li><li class="lastQuote">'+last+'</li></ol>'
+		}
+		let progressBar = function(valueNow,valueMin,valueMax){
+			if(typeof valueMin == 'undefined'){
+				valueMin = 0
+			}
+			if(typeof valueMax == 'undefined'){
+				valueMax = 100
+			}
+			return '<div class="progress">'+
+			  '<div class="progress-bar" role="progressbar" aria-valuenow="'+valueNow+'" aria-valuemin="'+valueMin+'" aria-valuemax="'+valueMax+'" style="width: '+valueNow+'%;">'+
+			    '<span class="sr-only">'+valueNow+'% Complete</span>'+
+			  '</div>'+
+			'</div>'
+		}
+		$.getJSON( endpoint, function( data ) {
+		  var items = [];
+		  data.filter( function( val ) {
+		  	let symbol = val[0]
+		  	let totalWalletValue = val[1]
+		  	let valueOnOrders = val[2]
+		  	// array
+		  	let orders = val[3]
+		  	let quote = val[4]
+		  	//console.log(quote)
+		    items.push( 
+		    	"<div class='panel panel-default'><div class='panel-heading'><h3>" +
+		    	 symbol + 
+		    	 "<span class='pull-right'>"+
+		    	 totalWalletValue +
+		    	 "</span></h3></div><div class='panel-body'>"
+		    	 )
+		    //items.push( "<li><ul><li>" + totalWalletValue + "</li><li>"+ valueOnOrders+"</li></ul></li>" );
+		    //items.push( "<li>" + totalWalletValue + ' / '+  valueOnOrders+"</li>" );
+		    
+		    let printOrders = []
+		    if(typeof orders != 'undefined'){
+		    	
+			    orders.filter(function(o){
+			    	if(typeof o.Exchange != 'undefined'){
+			    		// bittrex
+			    		console.log(o.Limit)
+						let orderRate = 0
+			    		
+						if(typeof o.Limit != 'undefined'){
+							orderRate = o.Limit
+						}
+						let orderType = o.OrderType.split('_').join(' ').toLowerCase()
+						// make sure symbol matches the order
+
+						let orderSymbol = o.Exchange.split('-')
+						let endPair = orderSymbol[0]
+						// this is a fix for bug in the bittrex api call that includes all orders in each row....
+						if(orderSymbol[1] != symbol){
+							return false
+						}
+						orderSymbol = orderSymbol[1] 
+
+						let date = timeSince(new Date(o.Opened))
+						let quantity = o.Quantity
+						let amountSold = o.Quantity - o.QuantityRemaining
+						printOrders.push(rowOrder(orderRate,orderType,endPair,date,quantity,amountSold))
+
+			    	}else{
+			    		// hitbtc
+			    		// quote is ["symbol",{quote}]
+			    		let basePairs = ["BTC","USD","BCC","ETH"]
+			    		let symbol = o.symbol
+			    		let orderRate = parseFloat(o.orderPrice)
+			    		let orderType = o.type + ' ' + o.side
+			    		let quantity = o.orderQuantity
+			    		//console.log(quantity)
+			    		let amountSold = quantity - o.quantityLeaves
+			    		let date = timeSince(new Date(o.lastTimestamp))
+			    		let endPair = "BTC"
+			    		//console.log(date)
+			    		basePairs.filter(function(p){
+			    			if(symbol.endsWith(p)){
+			    				console.log('Symbol ' + symbol + ' is ' + p)
+			    				symbol = symbol.split(p)[0]
+				   				endPair = p
+			    			}
+			    		})
+			
+				    	printOrders.push(rowOrder(orderRate,orderType,endPair,date,quantity,amountSold))
+			    	}
+			    	
+			    });
+			    let quoteRow = []
+			     if(typeof quote != 'undefined'){
+			    		//quote = quote[1]
+		    		if(typeof quote != 'undefined' && typeof quote.Ask != 'undefined'){
+		    			// hitbtc quote
+		    			quoteRow.push(rowQuote(quote.Ask,quote.Bid,quote.Last))
+		    		}else if(typeof quote[1] != 'undefined' && quote[1].ask != 'undefined'){
+		    			// bittrex quote
+		    			quoteRow.push(rowQuote(quote[1].ask,quote[1].bid,quote[1].last))
+		    		}
+		    		if(quoteRow.length > 0){
+			    		items.push(quoteRow.join(" "))
+			    	}
+			    }
+			}
+			// all in ?
+			// variable to hide the total value if they show the same thing
+			let valueCheck = (totalWalletValue === valueOnOrders ? true : false )
+
+		    items.push(  "<table class='table'><tbody>" + printOrders.join(' ') +"</tbody></table>" )
+
+		    items.push( "<p class='text-center "+(valueCheck ? 'sellColor' :'buyColor')+"'>"+(valueCheck ? '' : 
+
+		    	progressBar(percentDiff(totalWalletValue,valueOnOrders))   )+'</p>' )
+
+		    items.push( "</div></div>" )
+
+		  });
+		  console.log(items)
+		  document.getElementById(endpoint.split('/')[1]).innerHTML =  items.join(' ') 
+
+		})
+	});
+	</script>
+</body>
+</html>
