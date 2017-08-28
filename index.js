@@ -210,48 +210,52 @@ app.get('/bittrex',function(req,res){
         let finalResult=[]
         let innerPromises = []
         // get unique symbols?
-        wallets.filter((wallet,i)=>{
-            //console.log(wallet)
-            if(parseInt(orderSymbols.indexOf(wallet.symbol))=== -1){
-                //orderSymbols.push(wallet.symbol)
-                openOrders.push(api.getOpenOrders(wallet.symbol))
-            }
-            if(i === wallets.length-1){
-                //console.log('open orders length' + openOrders.length)
-             
-                let r = Promise.all(openOrders).then((values) => {
-                    if(values[0][0].OrderUuid === values[1][0].OrderUuid){
-                        // only parse the top row
-                        // weird azz thing going on here dunno why.... 
-                        values[0].filter((order)=>{
-                            innerPromises.push(
-                                bittrex.PublicApi.getTicker(order.Exchange)
-                                )
-                        })
-                        result = Promise.all(innerPromises).then((fValues)=>{
-                            var r = []
-                            wallets.filter((w,wI)=>{
-                                if(w.available === 0){
-                                    w.available = w.onOrders
-                                }
-                                r.push([
-                                        w.symbol,
-                                        parseFloat(w.available)+w.onOrders,
-                                        w.onOrders,
-                                        values[wI],
-                                        fValues[wI]
-                                        ]
+         bittrex.PublicApi.getTicker('USDT-BTC').then((btcQuote)=>{
+            wallets.filter((wallet,i)=>{
+                //console.log(wallet)
+                if(parseInt(orderSymbols.indexOf(wallet.symbol))=== -1){
+                    //orderSymbols.push(wallet.symbol)
+                    openOrders.push(api.getOpenOrders(wallet.symbol))
+                }
+                if(i === wallets.length-1){
+                    //console.log('open orders length' + openOrders.length)
+                 
+                    let r = Promise.all(openOrders).then((values) => {
+                        if(values[0][0].OrderUuid === values[1][0].OrderUuid){
+                            // only parse the top row
+                            // weird azz thing going on here dunno why.... 
+                            values[0].filter((order)=>{
+                                innerPromises.push(
+                                    bittrex.PublicApi.getTicker(order.Exchange)
                                     )
-
                             })
-                            res.send(r)
-                        })
-                    }else{
-                        console.log("This is a really strange error inside a hack to fix another error")
-                        process.exit()
-                    }
-                })
-            }
+                            result = Promise.all(innerPromises).then((fValues)=>{
+                                var r = []
+                                wallets.filter((w,wI)=>{
+                                    if(w.available === 0){
+                                        w.available = w.onOrders
+                                    }
+                                    r.push([
+                                            w.symbol,
+                                            parseFloat(w.available)+w.onOrders,
+                                            w.onOrders,
+                                            values[wI],
+                                            fValues[wI]
+                                            ]
+                                        )
+
+                                })
+                                r.push(btcQuote)
+                                console.log(btcQuote)
+                                res.send(r)
+                            })
+                        }else{
+                            console.log("This is a really strange error inside a hack to fix another error")
+                            process.exit()
+                        }
+                    })
+                }
+            })
         })
     })
 })
@@ -322,42 +326,49 @@ app.get('/hitbtc', function(req, res) {
         // also will want to check for symbols that have orders in multiple markets
         // i.e. if theres an order for ETHBTC and BCCETH
         // TO DO!
-
-        wallets.filter((wallet, i) => {
-            let resolution = []
-            let activeSymbols = []
-            if (typeof wallet[3] != 'undefined') {
-                let orders = wallet[3]
-                orders.filter((o, n) => {
-                    //console.log(o.symbol)
-                    if (activeSymbols.indexOf(o.symbol) == -1) {
-                        activeSymbols.push(o.symbol)
-                    }
-                })
-                activeSymbols.filter((sym) => {
-                    let { getTicker } = restClient
-                    resolution.push(getTicker(sym))
-                })
-                results = []
-                Promise.all(resolution).then(values => {
-                    if (activeSymbols.length === values.length) {
-                        if (activeSymbols.length === 1) {
-                            wallet.push([activeSymbols[0], values[0]])
-                        } else {
-                            wallet.push([activeSymbols, values])
+        // get btc quote then filter
+        let { getTicker } = restClient
+        getTicker('BTCUSD').then((btcQuote)=>{
+            wallets.filter((wallet, i) => {
+                let resolution = []
+                let activeSymbols = []
+                if (typeof wallet[3] != 'undefined') {
+                    let orders = wallet[3]
+                    orders.filter((o, n) => {
+                        //console.log(o.symbol)
+                        if (activeSymbols.indexOf(o.symbol) == -1) {
+                            activeSymbols.push(o.symbol)
                         }
-                        // res send here .. :( ) 
-                        results.push(wallet)
-                        if(results.length === walletsWithOrderCount){
-                            res.send(results)
-                        }else{
-                            //console.log(results.length-1 + ' > ' + wallets.length + ' : ' + i)
-                        }
-                    }
-                })
-            }
+                    })
+                    activeSymbols.filter((sym) => {
 
+                        resolution.push(getTicker(sym))
+                    })
+                    results = []
+                    Promise.all(resolution).then(values => {
+                        if (activeSymbols.length === values.length) {
+                            if (activeSymbols.length === 1) {
+                                wallet.push([activeSymbols[0], values[0]])
+                            } else {
+                                wallet.push([activeSymbols, values])
+                            }
+                            // res send here .. :( ) 
+                            results.push(wallet)
+                            if(results.length === walletsWithOrderCount){
+                                // get btc quote and tack it on?
+                                console.log(btcQuote)
+                                results.push(btcQuote)
+                                res.send(results)
+                            }else{
+                                //console.log(results.length-1 + ' > ' + wallets.length + ' : ' + i)
+                            }
+                        }
+                    })
+                }
+
+            })
         })
+       
     })
 
 })

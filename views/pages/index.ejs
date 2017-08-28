@@ -80,57 +80,33 @@
 	}
 	 function percentDiff(v1,v2){
 	    if(isNaN(v1) || isNaN(v2)){
-	      return ''
+	      return '';
 	    }
-	    var r = v1 - v2
-	    r = r / ((v1 + v2) / 2)
-	    return (!isNaN(r) ? (r * 100).toFixed(3) : '')
+	    var r = v1 - v2;
+	    r = r / ((v1 + v2) / 2);
+	    return (!isNaN(r) ? (r * 100).toFixed(3) : '');
 	  }
 	   function percentChange(v1,v2){
 
 	    if(isNaN(v1) || isNaN(v2)){
-	      return ''
+	      return '';
 	    }
-	    let num = v1 - v2
-	    return (num / v2) * 100
+	    let num = v1 - v2;
+	    return (num / v2) * 100;
 	  }
 	   function btcToSatoshi(x){
-	    return (x / 0.00000001).toFixed(0)
+	    return (x / 0.00000001).toFixed(0);
 	  }
 	   function btcToMbtc(x){
 	    // guessing here....
 	    // maybe tofixed 8?
-	    return (x / 0.00001).toFixed(0)
+	    return (x / 0.00001).toFixed(0);
 	  }
 	  let updateElementById= function(target,newValue){
-			return document.getElementById(target).innerHTML = newValue
+			return document.getElementById(target).innerHTML = newValue;
 		}
-
-	  var usdQuotes = setInterval(function () {
-	  	// check to see that theres something on the board?
-
-            $.getJSON('/usdQuotes',function(data){
-            	console.log("GOT QUOTES")
-				data.filter(function(q){
-					let symbol = q[0]
-					let exchange = q[1]
-					let value = q[2]
-					matchingElement = document.getElementById(symbol + '_'+exchange)
-					if(typeof matchingElement != 'undefined' && matchingElement != null){
-						let newValue = parseFloat(matchingElement.innerHTML)
-						if(newValue){
-							updateElementById(symbol + '_'+exchange + '_value', ' $ '+ (newValue * value).toFixed(2))
-
-						}else{
-
-						}
-
-					}
-
-				})
-			})
-        },5000); 
-	['/bittrex','/hitbtc'].filter(function(endpoint){
+		let ep = ['/bittrex','/hitbtc']
+		ep.filter(function(endpoint){
 		let rowOrder = function(rate,orderType,endPair,date,quantity,amountSold){
 			let orderColorClass = (orderType == 'limit sell' || orderType == 'sell' ? 'sellColor' : 'buyColor')
 			return "<tr class='"+orderColorClass+"'><td>"+
@@ -164,36 +140,36 @@
 			'</div>'
 		}
 		
-		let getUsdQuotes=function(){
-			$.getJSON('/usdQuotes',function(data){
-				data.filter(function(q){
-					let symbol = q[0]
-					let exchange = q[1]
-					let value = q[2]
-					matchingElement = document.getElementById(symbol + '_'+exchange)
-					if(typeof matchingElement != 'undefined' && matchingElement != null){
-						let newValue = parseFloat(matchingElement.innerHTML)
-						if(newValue){
-							updateElementById(symbol + '_'+exchange + '_value', ' $ '+ (newValue * value).toFixed(2))
-						}else{
-						}
-					}
-				})
-			})
-		}
+		
 		let interval = setInterval(function () {
-			console.log("interval should have been set?")
 			$.getJSON( endpoint, function( data ) {
 			  var items = [];
 			  // getUsdQuotes()
+			  let btcQuote = 0;
+			  data.filter(function(val){
+			  	if(typeof val.Last != 'undefined'){
+			  		// hitbtc quote
+			  		btcQuote = parseFloat(val.Last)
+			  	}else if(typeof val.last != 'undefined'){
+			  		// bittrex quote
+			  		btcQuote = parseFloat(val.last)
+			  	}
+			  })
+
 
 			  data.filter( function( val ) {
+			  	//console.log(val);
+			  	if(typeof val.Last != 'undefined' || typeof val.last != 'undefined'){
+			  		return false;
+			  	}
 			  	let symbol = val[0]
-			  	let totalWalletValue = val[1]
+			  	let totalWalletValue = parseFloat(val[1])
 			  	let valueOnOrders = val[2]
 			  	// array
 			  	let orders = val[3]
 			  	let quote = val[4]
+			  	//let btcQuote = val[5]
+			  	//console.log('btc quote: ' + btcQuote)
 			  	//console.log(quote)
 			    items.push( 
 			    	"<div class='panel panel-default'><div class='panel-heading'><h3>" +
@@ -261,12 +237,18 @@
 				    let quoteRow = []
 				     if(typeof quote != 'undefined'){
 				    		//quote = quote[1]
-			    		if(typeof quote != 'undefined' && typeof quote.Ask != 'undefined'){
+			    		if(typeof quote != 'undefined' && typeof quote.Last != 'undefined'){
 			    			// hitbtc quote
-			    			quoteRow.push(rowQuote(quote.Ask,quote.Bid,quote.Last))
-			    		}else if(typeof quote[1] != 'undefined' && quote[1].ask != 'undefined'){
+			    			//console.log("HITBTC QUOTE")
+			    			// btcQuote??
+			    			//console.log('****\t'+parseFloat(quote.Last) * parseFloat(totalWalletValue) * btcQuote)
+			    			//console.log(btcQuote)
+			    			//console.log(totalWalletValue)
+			    			quoteRow.push(rowQuote(quote.Ask,quote.Bid,(  Number(parseFloat(quote.Last) * parseFloat(totalWalletValue)))  * parseFloat(btcQuote)))
+			    		}else if(typeof quote[1] != 'undefined' && quote[1].last != 'undefined'){
 			    			// bittrex quote
-			    			quoteRow.push(rowQuote(quote[1].ask,quote[1].bid,quote[1].last))
+
+			    			quoteRow.push(rowQuote(quote[1].ask,quote[1].last,(parseFloat(quote[1].last) * parseFloat(totalWalletValue)) * btcQuote))
 			    		}
 			    		if(quoteRow.length > 0){
 				    		items.push(quoteRow.join(" "))
@@ -276,7 +258,7 @@
 				// all in ?
 				// variable to hide the total value if they show the same thing
 				let valueCheck = (totalWalletValue === valueOnOrders ? true : false )
-
+				// totalWalletValue * 
 			    items.push(  "<table class='table'><tbody>" + printOrders.join(' ') +"</tbody></table>" )
 
 			    items.push( "<p class='text-center "+(valueCheck ? 'sellColor' :'buyColor')+"'>"+(valueCheck ? '' : 
@@ -289,7 +271,7 @@
 			  document.getElementById(endpoint.split('/')[1]).innerHTML =  items.join(' ') 
 
 			})
-		},10000)
+		},15000)
 
 	});
 	</script>
