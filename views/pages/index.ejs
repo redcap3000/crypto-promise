@@ -124,7 +124,7 @@
 				return ""
 			}
 			let spread = percentDiff(parseFloat(ask),parseFloat(bid))
-			return "<ol class='breadcrumb text-center'><li>"+spread+ "</li><li class='quoteAsk'>" + ask + '</li><li class="quoteBid">' + bid+ '</li><li class="lastQuote">'+last+'</li></ol>'
+			return "<ol class='breadcrumb text-center'><li>"+spread+ "</li><li class='quoteAsk'>" + ask + '</li><li class="quoteBid">' + bid+ '</li><li class="lastQuote"> $ '+parseFloat(last).toFixed(2)+'</li></ol>'
 		}
 		let progressBar = function(valueNow,valueMin,valueMax){
 			if(typeof valueMin == 'undefined'){

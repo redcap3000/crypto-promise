@@ -164,7 +164,6 @@ app.get('/usdQuotes', function(req,res) {
     })
    
     let results = []
-    console.log(promises.length)
     var result = Promise.all(promises).then((r)=>{
 //        console.log(r)
         res.send(r)
@@ -246,7 +245,6 @@ app.get('/bittrex',function(req,res){
 
                                 })
                                 r.push(btcQuote)
-                                console.log(btcQuote)
                                 res.send(r)
                             })
                         }else{
@@ -356,7 +354,6 @@ app.get('/hitbtc', function(req, res) {
                             results.push(wallet)
                             if(results.length === walletsWithOrderCount){
                                 // get btc quote and tack it on?
-                                console.log(btcQuote)
                                 results.push(btcQuote)
                                 res.send(results)
                             }else{
